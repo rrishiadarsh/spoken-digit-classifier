@@ -1,0 +1,114 @@
+Spoken Digit Recognition using PyTorch & Librosa
+This project is a lightweight, real-time prototype for recognizing spoken digits (0-9) from audio input. It uses a Convolutional Neural Network (CNN) built with PyTorch and a robust audio feature extraction pipeline powered by Librosa.
+
+The final model was trained on the Free Spoken Digit Dataset (FSDD) and achieves high accuracy in live testing.
+
+Key Features
+Real-time Prediction: Uses your microphone to classify spoken digits in real time.
+
+File-based Prediction: Can predict the digit from a pre-existing WAV audio file.
+
+Robust Training Pipeline: Includes a complete script to train the model from scratch, incorporating advanced feature engineering for high performance.
+
+Modular Code: The model architecture, training logic, and prediction scripts are separated for clarity and extensibility.
+
+The Journey: A Deep Dive into the Algorithm
+Building this model was an iterative process of debugging and refinement. The final algorithm is the result of overcoming several key challenges to ensure the model is both accurate and reliable.
+
+1. The Core Challenge: Consistency
+The most critical lesson learned was that the audio processing pipeline used for training the model must be identical to the pipeline used for live prediction. Early versions of this project failed because of subtle mathematical differences between audio libraries, which caused the model to see live audio as completely different from the data it was trained on.
+
+The final, successful approach guarantees this consistency by using the librosa library for all audio processing in both train.py and app.py.
+
+2. Final Feature Engineering Pipeline
+To get accurate results, raw audio waveforms are transformed into a feature-rich format that the neural network can understand. This is the heart of the algorithm:
+
+Load Audio: The process starts by loading an audio file (from the dataset or the microphone). Using librosa, we ensure the audio is resampled to a consistent 8000 Hz and converted to mono (a single channel).
+
+Mel Spectrogram & Decibel Conversion (Crucial for Normalization): Instead of using the raw audio, we first create a Mel Spectrogram. This represents the audio's power across different frequency bands, similar to how the human ear works. We then convert this power to a decibel (dB) scale. This step is critical because it normalizes the audio for volume, meaning the model can focus on the shape of the sounds rather than how loudly they were spoken.
+
+Mel-Frequency Cepstral Coefficients (MFCCs): From the decibel-scaled spectrogram, we calculate 16 MFCCs. These are special coefficients that compactly represent the most important information about the sound's timbre and phonetic content.
+
+Padding / Truncating: All audio clips have different lengths. To feed them into the model, they must all be the exact same size. We pad shorter clips with silence and truncate longer ones to a fixed length (MAX_LEN_FRAMES = 256).
+
+Normalization (The Key to Unlocking Performance): The final and most important step is normalizing the features. The training script first calculates the mean (average) and standard deviation (spread) of every feature across the entire training dataset. These two statistics are then saved. During both training and prediction, every set of features is normalized by subtracting the mean and dividing by the standard deviation. This ensures that all input data is on the same numerical scale, which is essential for the model to learn effectively and avoid collapsing to a single prediction.
+
+3. Model Architecture
+The brain of the project is a Convolutional Neural Network (CNN) defined in model.py and used by both the training and prediction scripts.
+
+Input: The model takes the normalized, 2D feature map (MFCCs over time) as input.
+
+Convolutional Layers: It uses three convolutional layers. These layers act as feature detectors, learning to recognize small, fundamental patterns in the audio features (like the start of a vowel sound, a sharp consonant, etc.).
+
+Pooling Layers: After each convolution, a Max Pooling layer downsamples the feature map, which helps the model focus on the most important information and become more robust.
+
+Dropout Layer: A Dropout layer is included to prevent overfitting. During training, it randomly "turns off" some neurons, forcing the model to learn more general and useful patterns instead of just memorizing the training data.
+
+Fully Connected Layers: Finally, the flattened features are passed through fully connected layers that perform the final classification, outputting a probability for each of the 10 digits.
+
+How to Set Up and Run the Project
+Follow these steps exactly in your terminal to get the project running.
+
+1. Create and Activate the Virtual Environment
+First, create an isolated Python environment for this project.
+
+# Create the environment
+python -m venv venv
+
+# Activate it (Windows PowerShell)
+.\venv\Scripts\Activate.ps1
+
+# OR Activate it (macOS/Linux)
+source venv/bin/activate
+
+You will know it worked when (venv) appears at the start of your terminal prompt.
+
+2. Install Dependencies
+Install all the required libraries using the requirements.txt file.
+
+pip install -r requirements.txt
+
+3. Retrain the Model (Mandatory)
+The provided spoken_digit_model.pth may be out of sync. You must retrain the model with the final, corrected scripts.
+
+Delete the old model: Make sure to delete the models folder if it exists.
+
+Run the training script:
+
+python train.py
+
+This will take a few minutes. It will download the dataset, train the new model, and save the final spoken_digit_model.pth and confusion_matrix.png files.
+
+4. Run the Live Demo
+Once the model is trained, you can start the live prediction application.
+
+Run the app server:
+
+python app.py
+
+Wait for the server to start. You will see a message like * Running on http://127.0.0.1:5000.
+
+Open the web page:
+
+In your file explorer, find the index.html file.
+
+Right-click on it and choose "Copy Path".
+
+Paste the path into your web browser's address bar and press Enter.
+
+Start Predicting: Click the "Start Recording" button and say a digit!
+
+File Descriptions
+train.py: The main script for training the model from scratch.
+
+app.py: A Flask web server that loads the trained model and serves predictions.
+
+index.html: The front-end webpage that captures microphone audio and displays results.
+
+model.py: Defines the architecture of the Convolutional Neural Network.
+
+requirements.txt: A list of all Python libraries required for the project.
+
+spoken_digit_model.pth: The final, trained model file that is generated by train.py.
+
+confusion_matrix.png: A visualization of the model's performance, generated by train.py.

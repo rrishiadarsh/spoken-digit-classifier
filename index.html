@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spoken Digit Recognition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .status-dot {
+            height: 12px; width: 12px;
+            background-color: #f87171;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Spoken Digit Classifier</h1>
+        <p class="text-gray-500 mb-6">Speak a digit from 0 to 9</p>
+        <div class="space-y-4">
+            <button id="recordButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-all">Start Recording</button>
+            <button id="stopButton" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-all" style="display: none;">Stop Recording</button>
+        </div>
+        <div id="status" class="mt-6 text-lg text-gray-700 h-10 flex items-center justify-center">
+            Click "Start Recording" to begin.
+        </div>
+        <div class="mt-4 p-4 border-2 border-dashed border-gray-200 rounded-lg">
+            <h2 class="text-xl font-semibold text-gray-800">Predicted Digit:</h2>
+            <p id="result" class="text-7xl font-bold text-blue-600 mt-2">-</p>
+        </div>
+    </div>
+    <script>
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        let mediaRecorder;
+        let audioChunks = [];
+        const FLASK_API_URL = 'http://127.0.0.1:5000/predict';
+
+        recordButton.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+                mediaRecorder.onstop = async () => {
+                    statusDiv.innerHTML = 'Processing...';
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'recording.wav');
+                    try {
+                        const response = await fetch(FLASK_API_URL, { method: 'POST', body: formData });
+                        if (!response.ok) {
+                           const errorData = await response.json();
+                           throw new Error(errorData.error || 'Server error');
+                        }
+                        const data = await response.json();
+                        resultDiv.textContent = data.prediction;
+                        statusDiv.innerHTML = 'Ready to record again.';
+                    } catch (error) {
+                        console.error('Error:', error);
+                        statusDiv.innerHTML = `<span class="text-red-500">Error: ${error.message}</span>`;
+                        resultDiv.textContent = '?';
+                    }
+                    audioChunks = [];
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                recordButton.style.display = 'none';
+                stopButton.style.display = 'block';
+                statusDiv.innerHTML = 'Recording... <span class="status-dot"></span>';
+                resultDiv.textContent = '-';
+                mediaRecorder.start();
+            } catch (err) {
+                console.error("Error accessing microphone:", err);
+                statusDiv.innerHTML = '<span class="text-red-500">Could not access microphone.</span>';
+            }
+        });
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            recordButton.style.display = 'block';
+            stopButton.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

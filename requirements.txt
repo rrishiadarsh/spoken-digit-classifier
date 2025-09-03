@@ -1,0 +1,10 @@
+torch
+torchaudio
+datasets
+numpy
+scikit-learn
+matplotlib
+flask
+flask-cors
+soundfile
+seaborn
