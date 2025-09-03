@@ -1,3 +1,10 @@
+# Spoken Digit Recognition using PyTorch & Librosa
+
+**[Link to Development Process Video](https://youtu.be/cb4MIZpLr68)**
+
+This project is a lightweight, real-time prototype for recognizing spoken digits...
+
+
 Spoken Digit Recognition using PyTorch & Librosa
 This project is a lightweight, real-time prototype for recognizing spoken digits (0-9) from audio input. It uses a Convolutional Neural Network (CNN) built with PyTorch and a robust audio feature extraction pipeline powered by Librosa.
 
